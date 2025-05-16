@@ -5,6 +5,7 @@ import random
 import time
 from datetime import date
 from sqlite3 import connect
+import atexit
 
 
 info = {}
@@ -20,6 +21,7 @@ bot = telebot.TeleBot(MY_TOKEN)
 conn = connect('tgbot_users')
 cursor = conn.cursor()
 cursor.execute('PRAGMA foreign_keys = ON')
+atexit.register(conn.close)
 
 ## Таблица users хранит информацию о пользователях, включая их уникальные Telegram ID и имена.
 cursor.execute(
@@ -45,11 +47,11 @@ cursor.execute(
         duration REAL,
         sleep_quality INTEGER,
         note TEXT,
-        FOREIGN KEY (user_id) REFERENCES users (chat_id)
+        FOREIGN KEY (user_id) REFERENCES users (id)
     );
     '''
 )
-
+conn.commit()
 
 def get_date() -> str:
     """
@@ -150,7 +152,7 @@ def load_user_data(chat_id: int) -> dict:
 
 
 def save_user_data(chat_id, data):
-    for cycle_date, cycle in data['cycles'].items:
+    for cycle_date, cycle in data['cycles'].items():
         cursor.execute(
             '''
             INSERT OR REPLACE INTO sleep_records
@@ -169,7 +171,7 @@ def save_user_data(chat_id, data):
         '''
         UPDATE users
         SET sleep_status = ?
-        WHERE chat_id = ?
+        WHERE id = ?
         ''',
         (data['is_sleeping'], chat_id)
     )
@@ -410,5 +412,3 @@ def other_text(message: telebot.types.Message):
 
 # Запуск бота
 bot.polling(none_stop=True)
-
-conn.close()
